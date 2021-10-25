@@ -41,6 +41,28 @@ class Database{
         self::close_connection($conn);   
         return $merchant_id;
     }
+
+
+    
+    function insert_in_user($tableName,$parameter,$email){
+
+        $q2 = "SELECT merchant_id from merchants where merchant_email = '{$email}'";  
+        $conn = self::build_connection(); 
+        $res=$conn->query($q2); 
+        $mid=$res->fetch_assoc();
+        $parameter[5]=$mid["merchant_id"];
+        
+        
+        $innerPera = "user_name,user_email,email_permission,list_view_permission,payment_permission,merchant_id";
+        $S = implode("','",$parameter);       
+        $S2 = "'".$S."'";     
+        
+              
+        $q3 = "insert into $tableName($innerPera) values($S2)"; 
+        echo $q3; 
+        $conn->query($q3);       
+          
+    }
     
 
             function insert_in_cards($d, $merchant_id){
