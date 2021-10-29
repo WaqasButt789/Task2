@@ -2,12 +2,13 @@
 
 require "Database.php";
 require "validation.php";
-include 'jwthandler.php';
+
 
 header('Content-Type:application/json');
 header('Access-Control-Allow-Origin:*');
 header('Access-Control-Allow-Methods:POST');
 header('Access-Control-Allow-Headers:Access-Control-Allow-Headers,Content_Type,Access-Control-Allow-Methods,Authorization,X-Requested-With');
+
 class AddUser extends Database{
     
     private $user_name;
@@ -18,50 +19,81 @@ class AddUser extends Database{
     private $payment_permission;
     public $email;
 
-    private $data;
-    private $parameter;
+    public $data;
+    public $parameter;
 
     function get_data()
     {
         $data=json_decode(file_get_contents("php://input"),true);
         $this->email=$data["merchant_email"];
         $user_name = $data['user_name'];
-        $user_email	 = $data['user_email'];    
+        $user_email	 = $data['user_email']; 
+        $user_password = $data['user_password'];   
         $email_permission = $data['email_permission'];
         $list_view_permission= $data['list_view_permission'];
         $payment_permission= $data['payment_permission'];
-        $parameter = array($user_name,$user_email,$email_permission,$list_view_permission,$payment_permission,$this->merchant_id);
+        $token=$data['token'];
+        $parameter = array($user_name,$user_email,$user_password,$email_permission,$list_view_permission,$payment_permission,$this->merchant_id);
         return $parameter;
+    } 
+
+    public function getkey()
+    {
+        $data=json_decode(file_get_contents("php://input"),true);
+        $k=$data["token"];
+          return $k;
     }
 
-    
-    /*function validation($parameter)
-    {
-       $flag=true;
-       $validate= new Validate();                                                   
-       if(!$validate->cnic_validate($parameter[5]))  { $flag=false; }   // validating cnic                                                   
-       if(!$validate->name_validate($parameter[0]))  { $flag=false; }   // validating name                                                            
-       if(!$validate->phone_validate($parameter[1]))  { $flag=false; }  // validating phone
-       if(!$validate->email_validate($parameter[6]))  { $flag=false; }   // validating email                                           
-       if(!$validate->dep_validate($parameter[3]))  { $flag=false; }  // validating department
-       return $flag;
-    }*/
+    public function get_token($data)
+	{
+         $key= $data;
+         echo $key;
+		 if(!empty($key))
+		 {
+			if(self::check_token($key))
+			{
+				return true;
+			}
+		 }
+		 else
+		 {
+			echo json_encode(array('Message'=>'you are not login','status'=>"404"));
+			return false;
+		 }
+	}
 
+    public function validating_data($parameter)
+    {
+        $v=new Validate();
+        $check_all = true;
+
+        if(!$v->email_validate($parameter[1]))          { $check_all[0]=false; }            // validating email                                                   
+        if(!$v->password_validate($parameter[2]))       { $check_all[0]=false; }            // validating password                                                            
+        if(!$v->name_validate($parameter[0]))           { $check_all[0]=false; }            // validating name
+        
+        return $check_all;
+
+
+    }
+    
+    
  
 
 
     function check_empty($parameter)
     {
-        if((empty($parameter[0])) || (empty($parameter[1])) || (empty($parameter[2])) || (empty($parameter[3])) || (empty($parameter[4]))) 
+        if((empty($parameter[0])) || (empty($parameter[1])) || (empty($parameter[2])) || (empty($parameter[3])) || (empty($parameter[4]) || (empty($parameter[5])))) 
         {
             echo json_encode(array('Message'=>'Please Enter All Fields :','status'=>false));
+            return false;
         }
-        else
-        {
-            self::insert_in($parameter);
+        else{
+            return true;
         }
+       
 
     }
+
     function insert_in($parameter)
     {
       
@@ -78,7 +110,22 @@ class AddUser extends Database{
         }
     }
 }
+
 $Add= new AddUser();
+$p=$Add->getkey();
 $vali = $Add->get_data();
-$Add->check_empty($vali);
+if($Add->get_token($p)){
+if($Add->check_empty($vali))
+{
+    if($Add->validating_data($vali)){
+         
+            $Add->insert_in($vali);
+    }
+}
+}
+else{
+
+    echo json_encode(array("Message"=>"you are not allowed to add user because you are not login!!!"));
+}
+
 ?>

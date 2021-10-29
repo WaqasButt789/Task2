@@ -14,19 +14,32 @@ class SendMail extends Database
 
     public $data;
 
+
+	public function dec_credit($d)
+	{
+		if(self::subtract($d))
+		{
+          echo "credit decremented";
+		}
+		else{
+			echo "credit not decremented";
+		}
+        
+
+	}
+
     public function get_data(){
         $data=json_decode(file_get_contents("php://input"),true);
         return $data;
     }
 
-	public function add_request()
+	public function add_request($data)
 	{
-        //$email_subject=$this->data["subject"];
-		//$email_from=$this->data["from"];
-		//$email_body=$this->data["body"];
-		//$send_to=$this->data["to"];
-
-		//self::insert_request($this->data);
+        $email_subject=$data["subject"];
+		$email_from=$data["from"];
+		$email_body=$data["body"];
+		$send_to=$data["to"];
+		self::insert_request($data);
 	} 
 
 	public function add_response ()
@@ -34,10 +47,27 @@ class SendMail extends Database
 			$arr= array("Recieved","Processed","Error","Invalid");
 			$r=rand(0,3);
 			$k=$arr[$r];
+			
+			self::insert_response($k);
+			
+	}
 
-			return $k;
-
-
+	public function get_token($data)
+	{
+         $key= $data["token"];
+		 
+		 if(!empty($key))
+		 {
+			if(self::check_token($key))
+			{
+				return true;
+			}
+		 }
+		 else
+		 {
+			echo json_encode(array('Message'=>'you are not login','status'=>"404"));
+			return false;
+		 }
 	}
     public function email($data) {
 
@@ -67,7 +97,7 @@ class SendMail extends Database
 	    print_r( $response->headers() );
 	    print $response->body() . "\n";
 
-		self::add_request();
+		//self::add_request();
 
 
 
@@ -80,5 +110,15 @@ class SendMail extends Database
 }
 $obj=new SendMail();
 $p=$obj->get_data();
-$obj->email($p);
-echo $obj->add_response();
+
+if($obj->get_token($p)){
+	$obj->email($p);
+	$obj->add_response();
+	$obj->add_request($p);
+	$obj->dec_credit($p);
+
+}
+
+else{
+    echo json_encode(array("Message"=>"you are not login"));
+}
